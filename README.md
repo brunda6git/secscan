@@ -4,7 +4,7 @@ A full-stack web application built with Django that automatically scans websites
 
 ## Live Demo
 
-> Scan any website — try `https://github.com` or `http://neverssl.com` to see the difference.
+**[https://secscan.onrender.com](https://secscan.onrender.com)**
 
 ##  Features
 
