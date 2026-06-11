@@ -267,7 +267,7 @@
 <div id="checkSections"></div>
 
     <div class="report-bar">
-      <button class="report-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="margin-right:12px;">🔍 Scan Another</button>
+      <button class="report-btn" onclick="newScan()" style="margin-right:12px;">🔍 Scan Another</button>
       <a id="reportBtn" href="#" class="report-btn" target="_blank">📄 Download PDF Report</a>
     </div>
   </div>
@@ -502,6 +502,15 @@ function filterChecks(type) {
       check.style.display = (sev && sev.textContent === type) ? 'grid' : 'none';
     }
   });
+}
+
+function newScan() {
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('urlInput').value = '';
+  document.getElementById('filterBar').style.display = 'none';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  setTimeout(() => document.getElementById('urlInput').focus(), 500);
 }
 
 document.getElementById('urlInput').addEventListener('keydown', e => {
