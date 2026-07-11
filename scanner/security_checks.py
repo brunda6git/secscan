@@ -53,7 +53,6 @@ COMMON_PORTS = [
     (3306, 'MySQL'),
     (5432, 'PostgreSQL'),
     (6379, 'Redis'),
-    (8080, 'HTTP-Alt'),
     (27017, 'MongoDB'),
 ]
 
@@ -92,7 +91,7 @@ def check_https_redirect(hostname):
         'recommendation': 'Redirect all HTTP traffic to HTTPS.',
     }
     try:
-        resp = requests.get(f'http://{hostname}', timeout=6, allow_redirects=True)
+        resp = requests.get(f'http://{hostname}', timeout=4, allow_redirects=True)
         if resp.url.startswith('https://'):
             result['passed'] = True
             result['detail'] = 'HTTP correctly redirects to HTTPS.'
@@ -136,7 +135,7 @@ def check_ports(hostname):
     for port, service in COMMON_PORTS:
         is_open = False
         try:
-            sock = socket.create_connection((hostname, port), timeout=1.5)
+            sock = socket.create_connection((hostname, port), timeout=0.8)
             sock.close()
             is_open = True
         except:
