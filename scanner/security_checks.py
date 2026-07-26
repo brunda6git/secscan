@@ -218,7 +218,7 @@ def check_ssl(hostname):
     return result
 
 
-def _try_port(hostname, port, timeout=1.2):
+def _try_port(hostname, port, timeout=0.9):
     try:
         sock = socket.create_connection((hostname, port), timeout=timeout)
         sock.close()
