@@ -5,16 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SecScan — Security Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #080c14;
     --bg2: #0d1520;
     --bg3: #121c2c;
     --border: #1e2d40;
-    --green: #00d97e;
-    --red: #ff4d5e;
-    --yellow: #ffb020;
-    --blue: #4f9cf9;
+    --green: #22c55e;
+    --red: #ef4444;
+    --high: #f97316;
+    --yellow: #facc15;
+    --blue: #3b82f6;
     --text: #c8d8ea;
     --text-dim: #4a6480;
     --text-bright: #e8f4ff;
@@ -24,11 +26,14 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html { height: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--sans);
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
   body::before {
@@ -51,7 +56,7 @@
     z-index: 0;
   }
 
-  .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; position: relative; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 48px; position: relative; flex: 1 0 auto; }
 
   /* NAV */
   nav {
@@ -66,21 +71,93 @@
   .logo-box { background: var(--green); color: #000; width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
   .nav-tag { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; }
 
-  /* HERO */
-  .hero { padding: 70px 0 40px; text-align: center; }
-  .hero-label { font-family: var(--mono); font-size: 0.7rem; color: var(--green); letter-spacing: 3px; margin-bottom: 20px; }
-  .hero h1 { font-size: 2.8rem; font-weight: 700; color: var(--text-bright); line-height: 1.2; margin-bottom: 14px; letter-spacing: -1px; }
-  .hero h1 span { color: var(--green); }
-  .hero p { color: var(--text-dim); font-size: 1rem; max-width: 500px; margin: 0 auto 36px; line-height: 1.7; }
+  .nav-owasp-link {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 700; color: var(--green);
+    text-decoration: none; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.4);
+    padding: 6px 14px; border-radius: 20px; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 0 0 0 rgba(34,197,94,0.3);
+    animation: owaspPulse 2.5s ease-in-out infinite;
+  }
+  .nav-owasp-link:hover { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.7); transform: translateY(-1px); }
+  .nav-owasp-link span { color: var(--green); }
+  @keyframes owaspPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.35); }
+    50% { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+  }
+  @media (max-width: 700px) { .nav-owasp-link { display: none; } }
+
+  .mode-toggle { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); font-size: 1rem; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .mode-toggle:hover { border-color: var(--green); color: var(--green); }
+
+body.light-mode {
+  --bg: #f8fafc;
+  --bg2: #ffffff;
+  --bg3: #eef2f7;
+  --border: #dde5ee;
+  --text: #33404f;
+  --text-dim: #6b7c8f;
+  --text-bright: #16202c;
+}
+
+body.light-mode::after {
+  background: radial-gradient(circle, rgba(0,180,120,0.06) 0%, transparent 70%);
+}
+
+body.light-mode nav { background: rgba(240,244,248,0.95); }
+body.light-mode .site-footer { background: rgba(220,230,240,0.8); }
+body.light-mode body::before { background-image: linear-gradient(rgba(0,135,90,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,135,90,0.04) 1px, transparent 1px); }
+body.light-mode body::after { background: radial-gradient(circle, rgba(0,135,90,0.05) 0%, transparent 70%); }
+body.light-mode .scan-card { background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.06); backdrop-filter: blur(16px); box-shadow: 0 8px 30px rgba(30,50,70,0.08); }
+body.light-mode .score-card { background: rgba(255,255,255,0.72); border-color: rgba(0,0,0,0.06); backdrop-filter: blur(16px); box-shadow: 0 8px 30px rgba(30,50,70,0.08); }
+body.light-mode .stat { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); box-shadow: 0 3px 10px rgba(30,50,70,0.05); }
+body.light-mode .chart-card { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); box-shadow: 0 3px 10px rgba(30,50,70,0.05); }
+body.light-mode .check { background: rgba(255,255,255,0.72); border-color: rgba(0,0,0,0.06); box-shadow: 0 2px 8px rgba(30,50,70,0.04); }
+body.light-mode .hiw-step { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); }
+body.light-mode .rec-item { background: rgba(255,255,255,0.72); border-color: rgba(0,0,0,0.06); }
+body.light-mode .hist-item { background: rgba(255,255,255,0.72); border-color: rgba(0,0,0,0.07); }
+body.light-mode .url-input { background: rgba(240,244,248,0.9); border-color: rgba(0,0,0,0.12); color: var(--text-bright); }
+body.light-mode .section-icon { background: rgba(240,244,248,0.9); border-color: rgba(0,0,0,0.1); }
+body.light-mode .filter-btn { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.1); }
+body.light-mode .tooltip-wrap .tooltip-box { background: #ffffff; border-color: rgba(0,135,90,0.3); color: #333; }
+body.light-mode .check-expanded { border-top-color: rgba(0,0,0,0.08); }
+body.light-mode .hiw-arrow { color: var(--green); }
+  
+  /* HERO — split layout */
+  .hero-split { display: flex; align-items: center; gap: 60px; padding: 80px 0 60px; transition: padding 0.3s ease; }
+  .hero-left { flex: 1; min-width: 0; }
+  .hero-right { flex: 0 0 460px; }
+  .hero-label { font-family: var(--mono); font-size: 0.7rem; color: var(--green); letter-spacing: 3px; margin-bottom: 20px; transition: opacity 0.3s ease, height 0.3s ease, margin 0.3s ease; }
+  .hero-left h1 { font-size: 3rem; font-weight: 700; color: var(--text-bright); line-height: 1.15; margin-bottom: 18px; letter-spacing: -1px; transition: font-size 0.3s ease, margin 0.3s ease; }
+  .hero-left h1 span { color: var(--green); }
+  .hero-left p { color: var(--text-dim); font-size: 1.02rem; max-width: 480px; line-height: 1.7; transition: opacity 0.3s ease, height 0.3s ease, margin 0.3s ease; }
+
+  /* HERO — compact state after scan */
+  .hero-split.compact { padding: 28px 0 24px; align-items: center; }
+  .hero-split.compact .hero-label,
+  .hero-split.compact .hero-left p { display: none; }
+  .hero-split.compact .hero-left h1 { font-size: 1.6rem; margin-bottom: 0; }
+  .hero-split.compact .hero-right { flex: 0 0 420px; }
+  .hero-split.compact .scan-card { padding: 14px 18px; }
+  .hero-split.compact .examples { display: none; }
+
+  @media (max-width: 960px) {
+    .hero-split { flex-direction: column; align-items: stretch; gap: 32px; padding: 50px 0 30px; text-align: center; }
+    .hero-right { flex: 1; }
+    .hero-left h1 { font-size: 2.2rem; }
+    .hero-left p { margin: 0 auto; }
+    .hero-split.compact { flex-direction: row; align-items: center; }
+    .hero-split.compact .hero-right { flex: 0 0 200px; }
+  }
 
   /* FORM */
-  .scan-card { background: rgba(15, 22, 35, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; max-width: 640px; margin: 0 auto 50px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .scan-card { background: rgba(15, 22, 35, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; width: 100%; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: padding 0.3s ease; }
   .input-row { display: flex; gap: 10px; }
   .url-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-bright); font-family: var(--mono); font-size: 0.88rem; padding: 12px 16px; outline: none; transition: border-color 0.2s; }
   .url-input:focus { border-color: var(--green); }
   .url-input::placeholder { color: var(--text-dim); }
-  .scan-btn { background: var(--green); color: #000; border: none; border-radius: 8px; padding: 12px 24px; font-family: var(--sans); font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
-  .scan-btn:hover { opacity: 0.85; }
+  .scan-btn { background: var(--green); color: #000; border: none; border-radius: 8px; padding: 12px 24px; font-family: var(--sans); font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: box-shadow 0.25s ease, transform 0.15s ease; white-space: nowrap; }
+  .scan-btn:hover { box-shadow: 0 0 0 5px rgba(0,217,126,0.18), 0 4px 20px rgba(0,217,126,0.4); transform: translateY(-1px); }
+  .scan-btn:active { transform: translateY(0); }
   .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .examples { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .examples span { font-size: 0.72rem; color: var(--text-dim); }
@@ -95,6 +172,9 @@
   .loader.show { display: block; }
   .spinner { width: 50px; height: 50px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid rgba(0,0,0,0.25); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 2px; }
+
   .loader-text { font-family: var(--mono); font-size: 0.82rem; color: var(--green); margin-bottom: 16px; }
   .progress-wrap { width: 300px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 12px; overflow: hidden; }
   .progress-bar { height: 100%; background: var(--green); border-radius: 4px; width: 0%; transition: width 0.4s ease; }
@@ -112,7 +192,7 @@
   #results.show { display: block; }
 
   /* SCORE CARD */
-  .score-card { background: rgba(15, 22, 35, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 28px; backdrop-filter: blur(16px); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  .score-card { background: rgba(13, 20, 32, 0.65); border: 1px solid rgba(0,217,126,0.12); border-radius: 14px; padding: 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 28px; backdrop-filter: blur(20px); box-shadow: 0 12px 44px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset; }
   .score-circle { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
   .score-circle svg { transform: rotate(-90deg); }
   .score-circle circle { fill: none; stroke-width: 8; }
@@ -125,43 +205,91 @@
   .score-info h2 { font-size: 1.1rem; color: var(--text-bright); margin-bottom: 6px; }
   .score-info p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
   .risk-pill { font-family: var(--mono); font-size: 0.75rem; font-weight: 700; padding: 6px 16px; border-radius: 6px; letter-spacing: 2px; }
+  
+.enterprise-banner {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: rgba(79,156,249,0.1); border: 1px solid rgba(79,156,249,0.4);
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px;
+    font-size: 0.78rem; color: var(--blue); line-height: 1.5;
+    animation: enterprisePulse 1.8s ease-in-out infinite;
+  }
+  .enterprise-banner-icon { flex-shrink: 0; font-size: 0.9rem; margin-top: -1px; }
+  @keyframes enterprisePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(79,156,249,0.35); border-color: rgba(79,156,249,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(79,156,249,0); border-color: rgba(79,156,249,0.85); }
+  }
+
   .LOW { background: rgba(0,217,126,0.12); color: var(--green); border: 1px solid rgba(0,217,126,0.3); }
   .MEDIUM { background: rgba(255,176,32,0.12); color: var(--yellow); border: 1px solid rgba(255,176,32,0.3); }
-  .HIGH { background: rgba(255,77,94,0.12); color: var(--red); border: 1px solid rgba(255,77,94,0.3); }
-  .CRITICAL { background: rgba(180,0,20,0.15); color: #ff2040; border: 1px solid rgba(180,0,20,0.4); }
+  .HIGH { background: rgba(249,115,22,0.12); color: var(--high); border: 1px solid rgba(249,115,22,0.3); }
+  .CRITICAL { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
 
   /* STATS */
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-  .stat { background: rgba(15, 22, 35, 0.45); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; text-align: center; backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .stat { background: rgba(13, 20, 32, 0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px; text-align: center; backdrop-filter: blur(12px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); transition: border-color 0.2s; }
+  .stat:hover { border-color: rgba(0,217,126,0.2); }
   .stat .val { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--text-bright); }
   .stat .lbl { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
   .stat.green .val { color: var(--green); }
   .stat.red .val { color: var(--red); }
 
+  /* CHART */
+.stats-row { display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-start; }
+.stats-row .stats { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 0; }
+.chart-card { background: rgba(13,20,32,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 200px; width: 100%; backdrop-filter: blur(14px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+.chart-canvas-wrap { position: relative; width: 180px; height: 180px; max-width: 100%; }
+
+/* TWO COLUMN RESULTS LAYOUT */
+.results-layout { display: flex; gap: 28px; align-items: flex-start; margin-top: 8px; }
+.results-main { flex: 0 0 65%; max-width: 65%; min-width: 0; }
+.results-sidebar { flex: 1; min-width: 0; position: sticky; top: 84px; display: flex; flex-direction: column; gap: 16px; }
+.results-sidebar .score-card { flex-direction: column; align-items: stretch; text-align: center; gap: 16px; }
+.results-sidebar .score-circle { margin: 0 auto; }
+.results-sidebar .stats-row { flex-direction: column; }
+.results-sidebar .stats { grid-template-columns: repeat(2, 1fr); }
+.results-sidebar .chart-card { width: 100%; }
+.results-sidebar .report-bar { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.results-sidebar .report-bar .report-btn { width: 100%; justify-content: center; margin-right: 0 !important; }
+
+@media (max-width: 900px) {
+  .results-layout { flex-direction: column; }
+  .results-main { max-width: 100%; }
+  .results-sidebar { position: static; width: 100%; }
+}
+
+.chart-title { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); letter-spacing: 2px; }
+.chart-legend { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--text-dim); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
   /* SECTION */
-  .section { margin-bottom: 20px; }
+  .section { margin-bottom: 24px; }
   .section-title { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
   .section-title h3 { font-size: 0.88rem; font-weight: 600; color: var(--text-bright); }
   .section-icon { width: 28px; height: 28px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
   .section-count { margin-left: auto; font-size: 0.72rem; color: var(--text-dim); font-family: var(--mono); }
 
   /* CHECK */
-  .check { background: rgba(15, 22, 35, 0.45); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px 16px; margin-bottom: 6px; display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; align-items: start; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; backdrop-filter: blur(8px); }
-  .check:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-  .check:hover { border-color: rgba(255,255,255,0.1); }
+  .check { background: rgba(13, 20, 32, 0.55); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px 16px; margin-bottom: 6px; display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; align-items: start; cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease; backdrop-filter: blur(10px); }
+  .check:hover { border-color: rgba(0,217,126,0.25); box-shadow: 0 8px 24px rgba(0,0,0,0.3); transform: translateY(-2px); }
   .check.fail { border-left: 3px solid var(--red); }
   .check.pass { border-left: 3px solid var(--green); }
   .check-icon { font-size: 13px; margin-top: 1px; }
   .check-name { font-size: 0.84rem; color: var(--text-bright); font-weight: 500; }
   .check-detail { font-size: 0.76rem; color: var(--text-dim); margin-top: 3px; line-height: 1.5; }
   .check-rec { font-size: 0.74rem; color: var(--blue); background: rgba(79,156,249,0.06); border: 1px solid rgba(79,156,249,0.15); border-radius: 5px; padding: 6px 10px; margin-top: 6px; display: none; }
+  .check-expanded { display: none; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+  .check.open .check-expanded { display: block; }
+  .exp-row { display: flex; gap: 10px; margin-bottom: 6px; align-items: flex-start; }
+  .exp-label { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); min-width: 60px; padding-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+  .exp-val { font-size: 0.78rem; color: var(--text); line-height: 1.5; }
   .check.open .check-rec { display: block; }
   .sev { font-family: var(--mono); font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; }
-  .sev-HIGH { background: rgba(255,77,94,0.15); color: var(--red); }
-  .sev-MEDIUM { background: rgba(255,176,32,0.15); color: var(--yellow); }
-  .sev-LOW { background: rgba(79,156,249,0.15); color: var(--blue); }
+  .sev-HIGH { background: rgba(249,115,22,0.15); color: var(--high); }
+  .sev-MEDIUM { background: rgba(250,204,21,0.15); color: var(--yellow); }
+  .sev-LOW { background: rgba(59,130,246,0.15); color: var(--blue); }
   .sev-INFO { background: rgba(74,100,128,0.2); color: var(--text-dim); }
-  .sev-PASS { background: rgba(0,217,126,0.12); color: var(--green); }
+  .sev-PASS { background: rgba(34,197,94,0.12); color: var(--green); }
 
   /* REPORT */
   .report-bar { text-align: center; margin: 24px 0 50px; }
@@ -169,53 +297,172 @@
   .report-btn:hover { background: rgba(0,217,126,0.07); }
 
   /* HISTORY */
-  .history { margin-bottom: 60px; }
-  .history-title { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 10px; }
+  .history-toggle-wrap { margin-bottom: 16px; }
+  .history-toggle-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(15,22,35,0.5); border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-dim); font-family: var(--mono); font-size: 0.75rem;
+    letter-spacing: 1px; padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
+  }
+  .history-toggle-btn:hover { color: var(--green); border-color: rgba(0,217,126,0.3); }
+
+  .hist-search-input {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-bright); font-family: var(--mono);
+    font-size: 0.8rem; padding: 8px 14px; outline: none; transition: border-color 0.2s;
+  }
+  .hist-search-input:focus { border-color: var(--green); }
+  .hist-search-input::placeholder { color: var(--text-dim); }
+
+  body.light-mode .history-toggle-btn { background: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.1); color: var(--text-dim); }
+  body.light-mode .history-toggle-btn:hover { color: #00875a; border-color: rgba(0,135,90,0.3); }
+
+  .history-toggle-arrow { transition: transform 0.25s ease; font-size: 0.8rem; }
+  .history-toggle-arrow.open { transform: rotate(180deg); }
+  .history { margin-bottom: 60px; animation: historySlide 0.25s ease; }
+  @keyframes historySlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
   .hist-item { display: flex; align-items: center; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin-bottom: 6px; font-size: 0.82rem; }
   .hist-url { flex: 1; font-family: var(--mono); font-size: 0.76rem; color: var(--text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hist-time { font-size: 0.72rem; color: var(--text-dim); font-family: var(--mono); }
   .hist-pdf { color: var(--text-dim); text-decoration: none; font-size: 0.75rem; }
   .hist-pdf:hover { color: var(--green); }
 
-  @media (max-width: 600px) {
-    .hero h1 { font-size: 2rem; }
-    .score-card { flex-direction: column; text-align: center; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .input-row { flex-direction: column; }
-  }
+  /* TOOLTIPS */
+.tooltip-wrap { position: relative; display: inline-block; cursor: help; }
+.tooltip-wrap .tooltip-box {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg3);
+  border: 1px solid rgba(0,217,126,0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  width: 240px;
+  font-size: 0.76rem;
+  color: var(--text);
+  line-height: 1.5;
+  z-index: 999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+.tooltip-wrap:hover .tooltip-box { display: block; }
+.tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0,217,126,0.3);
+}
+
+/* FOOTER */
+.site-footer { border-top: 1px solid var(--border); margin-top: 60px; padding: 16px 0; background: rgba(8,12,20,0.8); flex-shrink: 0; }
+.footer-inner { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.footer-logo { font-family: var(--mono); font-size: 0.85rem; font-weight: 700; color: var(--green); }
+.footer-copy { font-size: 0.7rem; color: var(--text-dim); opacity: 0.6; }
+.footer-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ftag { font-family: var(--mono); font-size: 0.65rem; color: var(--green); background: rgba(0,217,126,0.08); border: 1px solid rgba(0,217,126,0.2); border-radius: 4px; padding: 2px 8px; }
+.footer-link { font-size: 0.75rem; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+.footer-link:hover { color: var(--green); }
+.footer-links-row { display: flex; gap: 16px; }
+
+/* RECOMMENDATIONS */
+.recommendations-section { margin-bottom: 28px; }
+.rec-title { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; font-weight: 600; color: var(--text-bright); padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.rec-count { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+.rec-item { background: rgba(15,22,35,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; border-left: 3px solid var(--red); }
+.rec-item.medium { border-left-color: var(--yellow); }
+.rec-item.low { border-left-color: var(--blue); }
+.rec-priority { font-family: var(--mono); font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+.rec-priority.high { color: var(--red); }
+.rec-priority.medium { color: var(--yellow); }
+.rec-priority.low { color: var(--blue); }
+.rec-name { font-size: 0.87rem; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
+.rec-fix { font-size: 0.78rem; color: var(--text-dim); line-height: 1.5; }
+.rec-fix code { font-family: var(--mono); color: var(--green); background: rgba(0,217,126,0.08); padding: 1px 6px; border-radius: 3px; font-size: 0.72rem; }
+
+  /* HOW IT WORKS — compact strip */
+.how-it-works { margin-bottom: 50px; padding: 20px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.hiw-steps { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.hiw-step { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.hiw-num { font-family: var(--mono); font-size: 0.95rem; font-weight: 700; color: var(--green); opacity: 0.5; flex-shrink: 0; }
+.hiw-body { min-width: 0; }
+.hiw-name { font-size: 0.82rem; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; white-space: nowrap; }
+.hiw-desc { font-size: 0.7rem; color: var(--text-dim); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hiw-arrow { font-size: 1rem; color: var(--green); opacity: 0.35; flex-shrink: 0; }
+
+@media (max-width: 900px) {
+  .hiw-steps { flex-direction: column; align-items: stretch; gap: 14px; }
+  .hiw-step { white-space: normal; }
+  .hiw-name, .hiw-desc { white-space: normal; }
+  .hiw-arrow { display: none; }
+}
+
+  @media (max-width: 900px) {
+  .stats-row { flex-direction: column; }
+  .chart-card { width: 100%; flex-direction: row; justify-content: center; }
+  .footer-inner { flex-direction: column; gap: 28px; }
+}
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 1.8rem; }
+  .score-card { flex-direction: column; text-align: center; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .input-row { flex-direction: column; }
+  .container { padding: 0 16px; }
+  .hero { padding: 40px 0 28px; }
+  .score-circle { width: 90px; height: 90px; }
+  .score-circle svg { width: 90px; height: 90px; }
+  .score-num .val { font-size: 1.4rem; }
+  .footer-tags { gap: 4px; }
+  .ftag { font-size: 0.65rem; }
+}
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="container nav-inner">
+  <div class="nav-inner">
     <div class="logo">
       <div class="logo-box">🔐</div>
       SecScan
     </div>
-    <div class="nav-tag">SECURITY SCANNER</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/owasp/" class="nav-owasp-link">OWASP Top 10 <span>ⓘ</span></a>
+      <button class="mode-toggle" id="modeToggle" onclick="toggleMode()" title="Toggle light/dark mode">🌙</button>
+      <div class="nav-tag">SECURITY SCANNER</div>
+    </div>
   </div>
 </nav>
 
 <div class="container">
 
-  <div class="hero">
-    <div class="hero-label">AUTOMATED SECURITY ANALYSIS</div>
-    <h1>Scan any site for<br><span>security misconfigurations</span></h1>
-    <p>Check HTTP headers, SSL certificates, open ports and more. Get a full PDF report with fixes.</p>
-  </div>
-
-  <div class="scan-card">
-    <div class="input-row">
-      <input class="url-input" id="urlInput" type="text" placeholder="https://example.com" autocomplete="off">
-      <button class="scan-btn" id="scanBtn" onclick="startScan()">▶ Scan</button>
+  <div class="hero-split" id="heroSection">
+    <div class="hero-left">
+      <div class="hero-label">AUTOMATED SECURITY ANALYSIS</div>
+      <h1>Scan any site for<br><span>security misconfigurations</span></h1>
+      <p>Check HTTP headers, SSL certificates, open ports and more. Get a full PDF report with fixes.</p>
     </div>
-    <div class="examples">
-      <span>Try:</span>
-      <button class="ex-btn" onclick="fill('https://github.com')">github.com</button>
-      <button class="ex-btn" onclick="fill('https://google.com')">google.com</button>
-      <button class="ex-btn" onclick="fill('http://neverssl.com')">neverssl.com</button>
-      <button class="ex-btn" onclick="fill('https://badssl.com')">badssl.com</button>
+
+    <div class="hero-right">
+      <div class="scan-card">
+        <div class="input-row">
+          <input class="url-input" id="urlInput" type="text" placeholder="https://example.com" autocomplete="off">
+          <button class="scan-btn" id="scanBtn" onclick="startScan()"><span id="scanBtnText">▶ Scan</span></button>
+        </div>
+        <div class="examples">
+          <span>Try:</span>
+          <button class="ex-btn" onclick="fill('https://github.com')">github.com</button>
+          <button class="ex-btn" onclick="fill('https://google.com')">google.com</button>
+          <button class="ex-btn" onclick="fill('http://neverssl.com')">neverssl.com</button>
+          <button class="ex-btn" onclick="fill('https://badssl.com')">badssl.com</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -230,54 +477,123 @@
   </div>
 
   <div id="results">
-    <div class="score-card">
-      <div class="score-circle">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle class="bg" cx="55" cy="55" r="47"/>
-          <circle class="fg" id="scoreArc" cx="55" cy="55" r="47"
-            stroke-dasharray="295.3" stroke-dashoffset="295.3"/>
-        </svg>
-        <div class="score-num">
-          <span class="val" id="scoreVal">0</span>
-          <span class="lbl">/100</span>
+    <div class="results-layout">
+
+      <div class="results-main">
+        <div id="filterBar" style="display:none; margin-bottom:16px; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; font-family:var(--mono);">FILTER:</span>
+          <button class="filter-btn active" onclick="filterChecks('all')" data-filter="all">All</button>
+          <button class="filter-btn" onclick="filterChecks('fail')" data-filter="fail">Failed Only</button>
+          <button class="filter-btn" onclick="filterChecks('HIGH')" data-filter="HIGH">HIGH</button>
+          <button class="filter-btn" onclick="filterChecks('MEDIUM')" data-filter="MEDIUM">MEDIUM</button>
+          <button class="filter-btn" onclick="filterChecks('LOW')" data-filter="LOW">LOW</button>
+        </div>
+        <div id="checkSections"></div>
+
+        <div id="recommendationsSection" class="recommendations-section" style="display:none;">
+          <div class="rec-title">
+            <span>Recommendations</span>
+            <span class="rec-count" id="recCount"></span>
+          </div>
+          <div id="recList"></div>
         </div>
       </div>
-      <div class="score-info">
-        <h2 id="scanUrl">—</h2>
-        <p id="scoreDesc">—</p>
+
+      <div class="results-sidebar">
+        <div class="score-card">
+          <div class="score-circle">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle class="bg" cx="55" cy="55" r="47"/>
+              <circle class="fg" id="scoreArc" cx="55" cy="55" r="47"
+                stroke-dasharray="295.3" stroke-dashoffset="295.3"/>
+            </svg>
+            <div class="score-num">
+              <span class="val" id="scoreVal">0</span>
+              <span class="lbl">/100</span>
+            </div>
+          </div>
+          <div class="score-info">
+            <h2 id="scanUrl">—</h2>
+            <p id="scoreDesc">—</p>
+          </div>
+          <div class="risk-pill" id="riskPill">—</div>
+          <div class="enterprise-banner" id="enterpriseBanner" style="display:none;">
+            <span class="enterprise-banner-icon">ⓘ</span>
+            <span id="enterpriseBannerText"></span>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stats">
+            <div class="stat green"><div class="val" id="sPassed">0</div><div class="lbl">Passed</div></div>
+            <div class="stat red"><div class="val" id="sFailed">0</div><div class="lbl">Failed</div></div>
+            <div class="stat"><div class="val" id="sPorts">0</div><div class="lbl">Open Ports</div></div>
+            <div class="stat"><div class="val" id="sTotal">0</div><div class="lbl">Total Checks</div></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Severity Breakdown</div>
+            <div class="chart-canvas-wrap">
+              <canvas id="severityChart"></canvas>
+            </div>
+            <div class="chart-legend" id="chartLegend"></div>
+          </div>
+        </div>
+
+        <div class="report-bar">
+          <button class="report-btn" onclick="newScan()">Scan Another?</button>
+          <a id="reportBtn" href="#" class="report-btn" target="_blank">Download PDF Report</a>
+        </div>
       </div>
-      <div class="risk-pill" id="riskPill">—</div>
-    </div>
 
-    <div class="stats">
-      <div class="stat green"><div class="val" id="sPassed">0</div><div class="lbl">Passed</div></div>
-      <div class="stat red"><div class="val" id="sFailed">0</div><div class="lbl">Failed</div></div>
-      <div class="stat"><div class="val" id="sPorts">0</div><div class="lbl">Open Ports</div></div>
-      <div class="stat"><div class="val" id="sTotal">0</div><div class="lbl">Total Checks</div></div>
-    </div>
-
-    <div id="filterBar" style="display:none; margin-bottom:16px; gap:8px; flex-wrap:wrap;">
-    <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; font-family:var(--mono);">FILTER:</span>
-    <button class="filter-btn active" onclick="filterChecks('all')" data-filter="all">All</button>
-    <button class="filter-btn" onclick="filterChecks('fail')" data-filter="fail">Failed Only</button>
-    <button class="filter-btn" onclick="filterChecks('HIGH')" data-filter="HIGH">HIGH</button>
-    <button class="filter-btn" onclick="filterChecks('MEDIUM')" data-filter="MEDIUM">MEDIUM</button>
-    <button class="filter-btn" onclick="filterChecks('LOW')" data-filter="LOW">LOW</button>
-</div>
-<div id="checkSections"></div>
-
-    <div class="report-bar">
-      <button class="report-btn" onclick="newScan()" style="margin-right:12px;">🔍 Scan Another</button>
-      <a id="reportBtn" href="#" class="report-btn" target="_blank">📄 Download PDF Report</a>
     </div>
   </div>
 
-  {% if recent or query %}
-  <div class="history">
-    <div class="history-title">RECENT SCANS</div>
+  <div class="how-it-works" id="howItWorks">
+  <div class="hiw-steps">
+    <div class="hiw-step">
+      <span class="hiw-num">01</span>
+      <div class="hiw-body">
+        <div class="hiw-name">Enter URL</div>
+        <div class="hiw-desc">Type any website URL and click Scan</div>
+      </div>
+    </div>
+    <div class="hiw-arrow">→</div>
+    <div class="hiw-step">
+      <span class="hiw-num">02</span>
+      <div class="hiw-body">
+        <div class="hiw-name">Automated Scan</div>
+        <div class="hiw-desc">Headers, SSL, ports and server config checked</div>
+      </div>
+    </div>
+    <div class="hiw-arrow">→</div>
+    <div class="hiw-step">
+      <span class="hiw-num">03</span>
+      <div class="hiw-body">
+        <div class="hiw-name">Get Results</div>
+        <div class="hiw-desc">Score, risk level and detailed findings</div>
+      </div>
+    </div>
+    <div class="hiw-arrow">→</div>
+    <div class="hiw-step">
+      <span class="hiw-num">04</span>
+      <div class="hiw-body">
+        <div class="hiw-name">Download Report</div>
+        <div class="hiw-desc">Export a professional PDF with fixes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="history-toggle-wrap">
+   <button class="history-toggle-btn" id="historyToggleBtn" onclick="toggleHistory()">
+      <span>Scan History {% if recent %}({{ recent|length }}){% endif %}</span>
+      <span class="history-toggle-arrow {% if query %}open{% endif %}" id="historyToggleArrow">▾</span>
+    </button>
+  </div>
+
+  <div class="history" id="historyPanel" data-open="{% if query %}true{% else %}false{% endif %}" style="display:none;">
     <form method="GET" action="/" style="margin-bottom:12px; display:flex; gap:8px;">
-      <input type="text" name="q" value="{{ query }}" placeholder="Search by URL..." 
-        style="flex:1; background:rgba(15,22,35,0.45); border:1px solid rgba(255,255,255,0.07); border-radius:8px; color:var(--text-bright); font-family:var(--mono); font-size:0.8rem; padding:8px 14px; outline:none; backdrop-filter:blur(8px);">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search by URL..." class="hist-search-input">
       <button type="submit" style="background:var(--green); color:#000; border:none; border-radius:8px; padding:8px 18px; font-weight:700; font-size:0.8rem; cursor:pointer;">Search</button>
       {% if query %}
       <a href="/" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); border-radius:8px; padding:8px 14px; font-size:0.8rem; text-decoration:none;">Clear</a>
@@ -289,11 +605,12 @@
       <span class="hist-url">{{ s.url }}</span>
       <span>{{ s.score }}/100</span>
       <span class="hist-time">{{ s.scanned_at|date:"Y-m-d H:i" }}</span>
-      <a class="hist-pdf" href="/report/{{ s.id }}/">📄</a>
+      <a class="hist-pdf" href="/report/{{ s.id }}/">PDF</a>
     </div>
+    {% empty %}
+    <div style="text-align:center; padding:20px; color:var(--text-dim); font-size:0.82rem;">No scans yet.</div>
     {% endfor %}
   </div>
-  {% endif %}
 
 </div>
 
@@ -327,6 +644,9 @@ function startScan() {
   document.getElementById('errorBox').classList.remove('show');
   document.getElementById('loader').classList.add('show');
   document.getElementById('scanBtn').disabled = true;
+  document.getElementById('scanBtnText').innerHTML = '<span class="btn-spinner"></span> Scanning...';
+  document.getElementById('howItWorks').style.display = 'none';
+  document.getElementById('heroSection').classList.add('compact');
 
   let i = 0;
   const stepsEl = document.getElementById('progressSteps');
@@ -379,14 +699,16 @@ function startScan() {
     clearInterval(interval);
     document.getElementById('loader').classList.remove('show');
     document.getElementById('scanBtn').disabled = false;
+    document.getElementById('scanBtnText').innerHTML = '▶ Scan';
     if (data.error) { showError(data.error); return; }
     scanId = data.scan_id;
     render(data);
   })
   .catch(err => {
     clearInterval(interval);
-    document.getElementById('loader').classList.remove('show');
+   document.getElementById('loader').classList.remove('show');
     document.getElementById('scanBtn').disabled = false;
+    document.getElementById('scanBtnText').innerHTML = '▶ Scan';
     showError(err.message);
   });
 }
@@ -395,6 +717,21 @@ function showError(msg) {
   const el = document.getElementById('errorBox');
   el.textContent = '⚠ ' + msg;
   el.classList.add('show');
+}
+
+function getTooltip(name) {
+  const tips = {
+    'HSTS': 'HTTP Strict Transport Security. Forces browsers to always use HTTPS. Prevents downgrade attacks where attackers force users onto plain HTTP.',
+    'Content Security Policy': 'CSP restricts which scripts and resources can load on your page. Primary defense against Cross-Site Scripting (XSS) attacks.',
+    'X-Frame-Options': 'Prevents your site from being embedded in iframes on other websites. Protects against clickjacking attacks.',
+    'X-Content-Type-Options': 'Tells browsers not to guess file types (MIME sniffing). Prevents attackers from disguising malicious files as safe content.',
+    'Referrer Policy': 'Controls how much URL information is shared when users click links. Prevents leaking sensitive URL parameters to third parties.',
+    'Permissions Policy': 'Restricts browser features like camera, microphone, and geolocation. Prevents scripts from silently accessing device features.',
+    'Server Info Leakage': 'Checks if server headers reveal software version. Exposed versions help attackers find known vulnerabilities.',
+    'HTTPS Redirect': 'Verifies HTTP traffic redirects to HTTPS. Without this, users on plain HTTP are vulnerable to eavesdropping.',
+    'SSL Certificate': 'Validates SSL certificate expiry and TLS protocol version. Expired certificates leave connections unverified.',
+  };
+  return tips[name] || 'Security check — hover for details.';
 }
 
 function render(data) {
@@ -408,12 +745,22 @@ function render(data) {
   // Score ring
   const circ = 295.3;
   document.getElementById('scoreArc').style.strokeDashoffset = circ * (1 - score / 100);
-  const ringColor = { LOW: '#00d97e', MEDIUM: '#ffb020', HIGH: '#ff4d5e', CRITICAL: '#ff2040' };
+  const ringColor = { LOW: '#22c55e', MEDIUM: '#facc15', HIGH: '#f97316', CRITICAL: '#ef4444' };
   document.getElementById('scoreArc').style.stroke = ringColor[risk] || '#00d97e';
 
   animNum('scoreVal', score);
   document.getElementById('scanUrl').textContent = data.url;
   document.getElementById('scoreDesc').textContent = scoreDesc(score, risk);
+
+const enterpriseBanner = document.getElementById('enterpriseBanner');
+if (data.is_enterprise && score < 60) {
+  document.getElementById('enterpriseBannerText').innerHTML = 
+    `<strong>Heads up:</strong> ${data.hostname || data.url} is a major, enterprise-grade platform. Its low score here does <strong>not</strong> mean it's insecure — large companies often use custom security infrastructure (CDNs, WAFs, internal proxies) that this scanner can't see. This score only reflects standard public HTTP header compliance, not the platform's actual security posture.`;
+  enterpriseBanner.style.display = 'flex';
+} else {
+  enterpriseBanner.style.display = 'none';
+}
+
   document.getElementById('riskPill').textContent = risk;
   document.getElementById('riskPill').className = `risk-pill ${risk}`;
 
@@ -450,10 +797,30 @@ function render(data) {
       ${arr.map(c => `
         <div class="check ${c.passed ? 'pass' : 'fail'}" onclick="this.classList.toggle('open')">
           <div class="check-icon" style="color:${c.passed ? 'var(--green)' : 'var(--red)'}">${c.passed ? '✓' : '✗'}</div>
-          <div>
-            <div class="check-name">${c.name}</div>
-            <div class="check-detail">${c.detail || ''}${c.extra ? `<br><small>Expires: ${c.extra.expires} · ${c.extra.days_left} days · ${c.extra.protocol}</small>` : ''}</div>
-            ${!c.passed && c.recommendation ? `<div class="check-rec">💡 ${c.recommendation}</div>` : ''}
+          <div style="flex:1;">
+            <div class="check-name">
+              <span class="tooltip-wrap">
+                ${c.name}
+                <span class="tooltip-box">${getTooltip(c.name)}</span>
+              </span>
+            </div>
+            <div class="check-detail">${c.detail || ''}${c.extra ? `<br><small style="font-family:var(--mono);color:var(--text-dim);">Expires: ${c.extra.expires} · ${c.extra.days_left} days left · ${c.extra.protocol}</small>` : ''}</div>
+            <div class="check-expanded">
+              ${!c.passed && c.recommendation ? `
+                <div class="exp-row">
+                  <span class="exp-label">Fix</span>
+                  <span class="exp-val">💡 ${c.recommendation}</span>
+                </div>` : ''}
+              ${c.passed ? `
+                <div class="exp-row">
+                  <span class="exp-label">Status</span>
+                  <span class="exp-val" style="color:var(--green)">✓ This check passed successfully</span>
+                </div>` : ''}
+              <div class="exp-row">
+                <span class="exp-label">Category</span>
+                <span class="exp-val">${c.category || 'security'}</span>
+              </div>
+            </div>
           </div>
           <div class="sev ${c.passed ? 'sev-PASS' : 'sev-' + c.severity}">${c.passed ? 'PASS' : c.severity}</div>
         </div>`).join('')}
@@ -462,9 +829,58 @@ function render(data) {
 
   document.getElementById('checkSections').innerHTML = html;
   if (scanId) document.getElementById('reportBtn').href = `/report/${scanId}/`;
+
+  renderRecommendations(checks);
+  renderChart(checks);
   document.getElementById('filterBar').style.display = 'flex';
   document.getElementById('results').classList.add('show');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderChart(checks) {
+  const high = checks.filter(c => !c.passed && c.severity === 'HIGH').length;
+  const medium = checks.filter(c => !c.passed && c.severity === 'MEDIUM').length;
+  const low = checks.filter(c => !c.passed && c.severity === 'LOW').length;
+  const passed = checks.filter(c => c.passed).length;
+
+  const canvas = document.getElementById('severityChart');
+  if (window._chart) window._chart.destroy();
+
+  if (high + medium + low + passed === 0) return;
+
+ window._chart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['HIGH', 'MEDIUM', 'LOW', 'PASSED'],
+      datasets: [{
+        data: [high, medium, low, passed],
+        backgroundColor: ['#f97316', '#facc15', '#3b82f6', '#22c55e'],
+        borderWidth: 0,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.raw} check${ctx.raw !== 1 ? 's' : ''}`
+        }
+      }},
+      animation: { animateRotate: true, duration: 800 }
+    }
+  });
+
+  const colors = { HIGH: '#f97316', MEDIUM: '#facc15', LOW: '#3b82f6', PASSED: '#22c55e' };
+  const data = { HIGH: high, MEDIUM: medium, LOW: low, PASSED: passed };
+  document.getElementById('chartLegend').innerHTML = Object.entries(data)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${colors[k]}"></div>
+        <span>${k}: ${v}</span>
+      </div>`).join('');
 }
 
 function scoreDesc(score, risk) {
@@ -472,6 +888,49 @@ function scoreDesc(score, risk) {
   if (risk === 'HIGH') return 'Significant vulnerabilities detected. Fix high severity issues first.';
   if (risk === 'MEDIUM') return 'Some issues found. Review and fix medium severity items.';
   return 'Good security posture. Minor improvements possible.';
+}
+
+function renderRecommendations(checks) {
+  const failed = checks.filter(c => !c.passed && c.recommendation);
+  const section = document.getElementById('recommendationsSection');
+  const list = document.getElementById('recList');
+  const count = document.getElementById('recCount');
+
+  if (failed.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  count.textContent = `${failed.length} issue${failed.length > 1 ? 's' : ''} to fix`;
+
+  const fixes = {
+    'HSTS': 'Add: <code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code>',
+    'Content Security Policy': 'Add: <code>Content-Security-Policy: default-src \'self\'</code>',
+    'X-Frame-Options': 'Add: <code>X-Frame-Options: DENY</code>',
+    'X-Content-Type-Options': 'Add: <code>X-Content-Type-Options: nosniff</code>',
+    'Referrer Policy': 'Add: <code>Referrer-Policy: strict-origin-when-cross-origin</code>',
+    'Permissions Policy': 'Add: <code>Permissions-Policy: geolocation=(), microphone=(), camera=()</code>',
+    'Server Info Leakage': 'Remove <code>Server</code> and <code>X-Powered-By</code> headers in your web server config',
+    'HTTPS Redirect': 'Configure your server to redirect all HTTP traffic to HTTPS',
+    'SSL Certificate': 'Renew your SSL certificate immediately using Let\'s Encrypt or your CA',
+  };
+
+  const order = { 'HIGH': 0, 'MEDIUM': 1, 'LOW': 2 };
+  failed.sort((a, b) => (order[a.severity] || 3) - (order[b.severity] || 3));
+
+  list.innerHTML = failed.map(c => {
+    const sev = c.severity || 'LOW';
+    const sevClass = sev.toLowerCase();
+    const fix = fixes[c.name] || c.recommendation;
+    return `
+      <div class="rec-item ${sevClass}">
+        <div class="rec-priority ${sevClass}">${sev} PRIORITY</div>
+        <div class="rec-name">${c.name}</div>
+        <div class="rec-fix">→ ${fix}</div>
+      </div>`;
+  }).join('');
+
+  section.style.display = 'block';
 }
 
 function animNum(id, target) {
@@ -486,7 +945,6 @@ function animNum(id, target) {
 }
 
 function filterChecks(type) {
-  // Update active button
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.filter === type);
   });
@@ -509,13 +967,58 @@ function newScan() {
   document.getElementById('errorBox').classList.remove('show');
   document.getElementById('urlInput').value = '';
   document.getElementById('filterBar').style.display = 'none';
+  document.getElementById('howItWorks').style.display = '';
+  document.getElementById('heroSection').classList.remove('compact');
   window.scrollTo({top: 0, behavior: 'smooth'});
   setTimeout(() => document.getElementById('urlInput').focus(), 500);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const panel = document.getElementById('historyPanel');
+  if (panel && panel.dataset.open === 'true') {
+    panel.style.display = 'block';
+  }
+});
+
+function toggleHistory() {
+  const panel = document.getElementById('historyPanel');
+  const arrow = document.getElementById('historyToggleArrow');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  arrow.classList.toggle('open', !isOpen);
+}
+
+function toggleMode() {
+  const body = document.body;
+  const btn = document.getElementById('modeToggle');
+  body.classList.toggle('light-mode');
+  btn.textContent = body.classList.contains('light-mode') ? '☀️' : '🌙';
+  localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+// Remember theme preference
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') {
+  document.body.classList.add('light-mode');
+  document.getElementById('modeToggle').textContent = '☀️';
 }
 
 document.getElementById('urlInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') startScan();
 });
 </script>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">🔐 SecScan</div>
+      <div class="footer-links-row">
+        <a href="/owasp/" class="footer-link">OWASP Top 10</a>
+      </div>
+      <div class="footer-copy">© 2026 SecScan</div>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>

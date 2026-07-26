@@ -42,6 +42,8 @@ def scan(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+def owasp_info(request):
+    return render(request, 'scanner/owasp.html')
 
 def download_report(request, scan_id):
     try:
@@ -53,3 +55,17 @@ def download_report(request, scan_id):
         return response
     except ScanResult.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
+
+def history_api(request):
+    scans = ScanResult.objects.all()[:50]
+    data = [
+        {
+            'id': s.id,
+            'url': s.url,
+            'score': s.score,
+            'risk_level': s.risk_level,
+            'scanned_at': s.scanned_at.isoformat(),
+        }
+        for s in scans
+    ]
+    return JsonResponse({'count': len(data), 'results': data})
